@@ -15,6 +15,7 @@ class SocketClient {
   private connectCallback: (() => void) | null = null;
   private restoredCallback: ((game: Game) => void) | null = null;
   private presenceCallback: ((disconnected: string[]) => void) | null = null;
+  private roomClosedCallback: (() => void) | null = null;
 
   // ===== 재접속(세션) =====
   // 소켓 ID가 곧 플레이어 ID라서, 연결이 끊겼다 붙으면 ID가 바뀐다.
@@ -117,6 +118,14 @@ class SocketClient {
       console.warn("[Socket] 재접속 요청 실패:", error);
       return null;
     }
+  }
+
+  onRoomClosed(callback: () => void) {
+    this.roomClosedCallback = callback;
+  }
+
+  offRoomClosed() {
+    this.roomClosedCallback = null;
   }
 
   onPresence(callback: (disconnected: string[]) => void) {
@@ -224,6 +233,14 @@ class SocketClient {
       }
     );
 
+    // 선생님이 방을 닫았을 때: 저장된 재접속 정보를 지우고 화면에 알린다
+    this.socket.on(SocketEvent.ROOM_CLOSED, () => {
+      this.clearSession();
+      if (this.roomClosedCallback) {
+        this.roomClosedCallback();
+      }
+    });
+
     this.socket.on(SocketEvent.ERROR, (error: string) => {
       if (this.errorCallback) {
         this.errorCallback(error);
@@ -326,6 +343,13 @@ class SocketClient {
   // 선생님(진행자) 방: 방장이지만 플레이어로 참가하지 않음
   teacherCreate(): Promise<{ roomId: string }> {
     return this.emitWithAck<{ roomId: string }>(SocketEvent.TEACHER_CREATE, {});
+  }
+
+  /** 선생님: 방을 닫는다 (학생들은 모두 메인 화면으로 돌아간다) */
+  teacherCloseRoom(roomId: string): Promise<{ roomId: string }> {
+    return this.emitWithAck<{ roomId: string }>(SocketEvent.TEACHER_CLOSE_ROOM, {
+      roomId,
+    });
   }
 
   /** 선생님: 지금 차례인 학생을 강제로 패스 */

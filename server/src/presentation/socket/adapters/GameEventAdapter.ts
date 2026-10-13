@@ -48,6 +48,33 @@ export class GameEventAdapter extends BaseEventAdapter {
     this.handleTeacherNextGame(socket);
     this.handleTeacherSkipTurn(socket);
     this.handleTeacherTurnTimer(socket);
+    this.handleTeacherCloseRoom(socket);
+  }
+
+  /**
+   * TEACHER_CLOSE_ROOM 이벤트 핸들러
+   *
+   * 선생님(방장)이 방을 닫습니다. 방에 있던 학생들에게 ROOM_CLOSED를 알리고
+   * 소켓 방에서 내보내며, 이후 연결이 끊겨도 퇴장 처리가 일어나지 않게 매핑을 지웁니다.
+   */
+  private handleTeacherCloseRoom(socket: Socket): void {
+    socket.on(
+      SocketEvent.TEACHER_CLOSE_ROOM,
+      async ({ roomId }: { roomId: string }, callback?: SocketCallback) => {
+        const result = await this.commandService.closeRoomByTeacher(roomId, socket.id);
+
+        if (result.success) {
+          this.io.to(roomId).emit(SocketEvent.ROOM_CLOSED, { roomId });
+          this.io.in(roomId).socketsLeave(roomId);
+          Array.from(this.playerRooms.entries()).forEach(([playerId, room]) => {
+            if (room === roomId) this.playerRooms.delete(playerId);
+          });
+        }
+
+        // 방이 사라졌으므로 상태 브로드캐스트는 하지 않는다
+        await this.handleSocketEvent(result, callback);
+      }
+    );
   }
 
   /**

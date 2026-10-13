@@ -16,6 +16,12 @@ interface SocketContextType {
   restoredGame: any | null;
   /** 지금 연결이 끊긴 학생들의 ID (선생님 화면의 📵 표시용) */
   disconnectedIds: string[];
+  /** 선생님이 방을 닫았는지 (학생 화면을 메인으로 돌려보낼 때 사용). 확인하면 acknowledgeRoomClosed로 지운다 */
+  roomClosed: boolean;
+  acknowledgeRoomClosed: () => void;
+  teacherCloseRoom: (
+    roomId: string
+  ) => Promise<{ success: boolean; error?: string; data?: any }>;
   /** 서버에서 최신 게임 상태를 다시 받아와 화면을 맞춘다 ("🔄 동기화" 버튼) */
   resync: () => Promise<void>;
   teacherSkipTurn: (
@@ -93,6 +99,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
   const [socketId, setSocketId] = useState<string | null>(null);
   const [restoredGame, setRestoredGame] = useState<any | null>(null);
   const [disconnectedIds, setDisconnectedIds] = useState<string[]>([]);
+  const [roomClosed, setRoomClosed] = useState(false);
   const { game, setGame } = useGameStore();
 
   // ----- 자동 동기화 -----
@@ -160,8 +167,10 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
     socketClient.onError(handleError);
     socketClient.onRestored(handleRestored);
     socketClient.onPresence(setDisconnectedIds);
+    socketClient.onRoomClosed(() => setRoomClosed(true));
 
     return () => {
+      socketClient.offRoomClosed();
       socketClient.offGameUpdate();
       socketClient.offConnect();
       socketClient.offError();
@@ -333,6 +342,17 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const teacherCloseRoom = async (roomId: string) => {
+    try {
+      const data = await socketClient.teacherCloseRoom(roomId);
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  };
+
+  const acknowledgeRoomClosed = () => setRoomClosed(false);
+
   const teacherSkipTurn = async (roomId: string) => {
     try {
       const data = await socketClient.teacherSkipTurn(roomId);
@@ -376,6 +396,9 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
         socketId,
         restoredGame,
         disconnectedIds,
+        roomClosed,
+        acknowledgeRoomClosed,
+        teacherCloseRoom,
         resync,
         teacherSkipTurn,
         teacherSetTurnTimer,

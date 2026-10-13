@@ -64,6 +64,14 @@ export class GameCommandService {
     private readonly teacherTurnControlUseCase?: TeacherTurnControlUseCase
   ) {}
 
+  /** 선생님이 방을 닫습니다. (방장만, 게임 기록 삭제) */
+  async closeRoomByTeacher(roomId: string, teacherId: string) {
+    if (!this.teacherTurnControlUseCase) {
+      return createErrorResponse('NOT_SUPPORTED', '지원하지 않는 기능입니다.');
+    }
+    return this.teacherTurnControlUseCase.closeRoom(roomId, teacherId);
+  }
+
   /** 선생님이 지금 차례인 학생을 강제로 패스시킵니다. */
   async skipTurnByTeacher(roomId: string, teacherId: string) {
     if (!this.teacherTurnControlUseCase) {

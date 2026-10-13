@@ -12,6 +12,7 @@ const STORAGE_KEY = "dalmutiTeacherRoomId";
 const MAX_EVENTS = 40;
 
 const Container = styled.div`
+  position: relative;
   min-height: 100vh;
   background: radial-gradient(circle at top, #2a1b52, #120a22 70%);
   padding: 1.5rem 2rem 3rem;
@@ -20,6 +21,22 @@ const Container = styled.div`
   align-items: center;
   gap: 1.2rem;
   color: #e5e7eb;
+`;
+
+const NewRoomButton = styled.button`
+  position: absolute;
+  top: 1.2rem;
+  right: 1.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #5b4694;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e5e7eb;
+  font-size: 0.95rem;
+  cursor: pointer;
+  &:hover {
+    background: rgba(255, 255, 255, 0.18);
+  }
 `;
 
 const Title = styled.h1`
@@ -114,6 +131,7 @@ const TeacherBoard: React.FC = () => {
     teacherNextGame,
     teacherSkipTurn,
     teacherSetTurnTimer,
+    teacherCloseRoom,
     disconnectedIds,
     startGame,
   } = useSocketContext();
@@ -207,6 +225,32 @@ const TeacherBoard: React.FC = () => {
     setError(res.success ? "" : res.error || "시간을 바꾸지 못했습니다.");
   };
 
+  // 지금 방을 닫고(학생들은 메인 화면으로 돌아감) 바로 새 방과 새 QR을 만든다
+  const handleNewRoom = async () => {
+    if (!roomId) return;
+    const ok = window.confirm(
+      "지금 방을 닫고 새 방을 만들까요?\n들어와 있는 학생들은 모두 나가게 돼요."
+    );
+    if (!ok) return;
+
+    const res = await teacherCloseRoom(roomId);
+    if (!res.success) {
+      setError(res.error || "방을 닫지 못했습니다.");
+      return;
+    }
+    try {
+      sessionStorage.removeItem(STORAGE_KEY);
+    } catch {
+      /* 무시 */
+    }
+    prevGameRef.current = null;
+    setEvents([]);
+    useGameStore.getState().reset();
+    setRoomId(null);
+    setError("");
+    await handleCreate();
+  };
+
   const handleNextGame = async () => {
     if (!roomId) return;
     const res = await teacherNextGame(roomId);
@@ -250,6 +294,7 @@ const TeacherBoard: React.FC = () => {
   return (
     <Container>
       <Title>👑 위대한 달무티</Title>
+      <NewRoomButton onClick={handleNewRoom}>🔄 방 닫고 새 방 만들기</NewRoomButton>
 
       {inLobby && (
         <>

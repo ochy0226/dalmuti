@@ -17,6 +17,7 @@ export enum SocketEvent {
   TEACHER_RESUME = "teacherResume",
   TEACHER_NEXT_GAME = "teacherNextGame",
   TEACHER_SKIP_TURN = "teacherSkipTurn",
+  TEACHER_CLOSE_ROOM = "teacherCloseRoom",
   TEACHER_TURN_TIMER = "teacherTurnTimer",
   REGISTER_SESSION = "registerSession",
   REJOIN = "rejoin",
@@ -27,5 +28,6 @@ export enum SocketEvent {
   GAME_ENDED = "gameEnded",
   NEXT_GAME_STARTED = "nextGameStarted",
   PRESENCE_UPDATED = "presenceUpdated",
+  ROOM_CLOSED = "roomClosed",
   ERROR = "error",
 }

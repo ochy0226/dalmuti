@@ -67,6 +67,46 @@ describe('TeacherTurnControlUseCase', () => {
     });
   });
 
+  describe('closeRoom (방 닫기)', () => {
+    const repoWithDelete = (game: Game | null): any => ({
+      findById: jest.fn().mockResolvedValue(game),
+      update: jest.fn().mockResolvedValue(null),
+      delete: jest.fn().mockResolvedValue(undefined),
+    });
+
+    it('방장이 방을 닫으면 게임 기록이 삭제된다', async () => {
+      const game = playingGame();
+      const repo = repoWithDelete(game);
+      const useCase = new TeacherTurnControlUseCase(repo, new PassTurnUseCase(repo));
+
+      const res = await useCase.closeRoom('ROOM01', 'teacher');
+
+      expect(res.success).toBe(true);
+      expect(repo.delete).toHaveBeenCalledTimes(1);
+    });
+
+    it('방장이 아니면(학생) 방을 닫을 수 없고 삭제되지 않는다', async () => {
+      const game = playingGame();
+      const repo = repoWithDelete(game);
+      const useCase = new TeacherTurnControlUseCase(repo, new PassTurnUseCase(repo));
+
+      const res = await useCase.closeRoom('ROOM01', 'p2');
+
+      expect(res.success).toBe(false);
+      expect(repo.delete).not.toHaveBeenCalled();
+    });
+
+    it('이미 없는 방은 닫힌 것으로 보고 성공 처리한다', async () => {
+      const repo = repoWithDelete(null);
+      const useCase = new TeacherTurnControlUseCase(repo, new PassTurnUseCase(repo));
+
+      const res = await useCase.closeRoom('ROOM01', 'teacher');
+
+      expect(res.success).toBe(true);
+      expect(repo.delete).not.toHaveBeenCalled();
+    });
+  });
+
   describe('setTurnTimeLimit (자동 패스 시간 설정)', () => {
     it('기본값은 40초다', () => {
       expect(playingGame().turnTimeLimit).toBe(40);
