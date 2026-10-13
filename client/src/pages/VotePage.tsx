@@ -1,0 +1,141 @@
+import React from "react";
+import { useGameStore } from "../store/gameStore";
+import { useSocketContext } from "../contexts/SocketContext";
+import styled from "styled-components";
+import { useNavigate } from "react-router-dom";
+import GameHistory from "../components/GameHistory";
+import GameHistoryDetail from "../components/GameHistoryDetail";
+
+const Container = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: #f3ecfa;
+  padding: 2rem;
+`;
+
+const Title = styled.h2`
+  font-size: 2rem;
+  color: #333;
+  margin-bottom: 2rem;
+`;
+
+const Button = styled.button<{ disabled?: boolean }>`
+  padding: 0.75rem 1.5rem;
+  background-color: ${({ disabled }) => (disabled ? "#ccc" : "#6d3fa5")};
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
+  transition: background-color 0.2s;
+  margin: 0 0.5rem;
+`;
+
+const VoteStatus = styled.div`
+  margin-top: 2rem;
+  background: #e9ecef;
+  border-radius: 8px;
+  padding: 1rem 2rem;
+  min-width: 250px;
+`;
+
+const HistoryButton = styled.button`
+  margin-top: 1.5rem;
+  padding: 0.75rem 1.5rem;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #5a6268;
+  }
+`;
+
+const VotePage: React.FC = () => {
+  const {
+    game,
+    showGameHistory,
+    setShowGameHistory,
+    selectedHistoryIndex,
+    setSelectedHistoryIndex,
+  } = useGameStore();
+  const { socketId, vote } = useSocketContext();
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (game?.phase === "gameEnd") {
+      navigate("/");
+    }
+
+    if (!game?.isVoting) {
+      navigate("/rank-confirmation");
+    }
+  }, [game?.isVoting, game?.phase, navigate]);
+
+  if (!game?.isVoting) return null;
+
+  const myVote = socketId ? game.votes[socketId] : undefined;
+  const hasHistory = game.gameHistories && game.gameHistories.length > 0;
+  const selectedHistory =
+    selectedHistoryIndex !== null && game.gameHistories
+      ? game.gameHistories[selectedHistoryIndex]
+      : null;
+
+  return (
+    <Container>
+      <Title>게임이 종료되었습니다!</Title>
+      <p>다시 한 번 플레이하시겠습니까?</p>
+      <div>
+        <Button
+          onClick={() => socketId && vote(game.roomId, true)}
+          disabled={myVote === true || !socketId}
+        >
+          예
+        </Button>
+        <Button
+          onClick={() => socketId && vote(game.roomId, false)}
+          disabled={myVote === false || !socketId}
+        >
+          아니오
+        </Button>
+      </div>
+      <VoteStatus>
+        <b>투표 현황</b>
+        {game.players.map((p) => (
+          <div key={p.id}>
+            {p.nickname}:{" "}
+            {game.votes[p.id] === undefined
+              ? "대기 중"
+              : game.votes[p.id]
+              ? "예"
+              : "아니오"}
+          </div>
+        ))}
+      </VoteStatus>
+      {hasHistory && (
+        <HistoryButton onClick={() => setShowGameHistory(true)}>
+          이전 게임 결과 보기
+        </HistoryButton>
+      )}
+      <GameHistory
+        isOpen={showGameHistory}
+        onClose={() => setShowGameHistory(false)}
+        histories={game.gameHistories || []}
+      />
+      <GameHistoryDetail
+        isOpen={selectedHistoryIndex !== null}
+        onClose={() => setSelectedHistoryIndex(null)}
+        history={selectedHistory}
+      />
+    </Container>
+  );
+};
+
+export default VotePage;

@@ -1,0 +1,13 @@
+**/node_modules
+**/build
+**/dist
+**/coverage
+**/.env
+**/.env.local
+**/*.log
+**/.sessions.json
+.git
+.github
+.vscode
+.claude
+**/.DS_Store

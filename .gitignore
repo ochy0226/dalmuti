@@ -1,0 +1,21 @@
+.vercel
+.claude/
+
+# 의존성 / 빌드 결과
+node_modules/
+build/
+dist/
+coverage/
+
+# 비밀 값 / 로컬 설정 (MongoDB 접속 주소 등은 절대 올리지 않는다)
+.env
+.env.local
+*.local
+
+# 실행 중 생기는 파일
+*.log
+.sessions.json
+
+# OS / 에디터
+.DS_Store
+.idea/
