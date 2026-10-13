@@ -106,7 +106,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, type }) => {
             <Section>
               <SectionTitle>달무티 게임이란?</SectionTitle>
               <Text>
-                4~9명이 함께 즐기는 카드 게임으로, 카드를 가장 먼저 없애는
+                4~10명이 함께 즐기는 카드 게임으로, 카드를 가장 먼저 없애는
                 사람이 승리합니다.
               </Text>
             </Section>
@@ -132,7 +132,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, type }) => {
             <Section>
               <SectionTitle>게임 준비</SectionTitle>
               <Text>
-                게임을 시작하려면 <Highlight>4~9명</Highlight>의 플레이어가
+                게임을 시작하려면 <Highlight>4~10명</Highlight>의 플레이어가
                 필요합니다.
               </Text>
               <Text>
@@ -238,7 +238,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, type }) => {
             <Section>
               <SectionTitle>달무티 게임 규칙</SectionTitle>
               <Text>
-                4~9명이 플레이하는 카드 게임으로, 카드를 가장 먼저 없애는
+                4~10명이 플레이하는 카드 게임으로, 카드를 가장 먼저 없애는
                 사람이 승리합니다.
               </Text>
             </Section>

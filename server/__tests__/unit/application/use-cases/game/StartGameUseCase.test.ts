@@ -213,14 +213,14 @@ describe('StartGameUseCase', () => {
       expect(response.success).toBe(false);
       if (!response.success) {
         expect(response.error.code).toBe('BUSINESS_RULE_VIOLATION');
-        expect(response.error.message).toContain('4~9명의 플레이어가 필요합니다');
+        expect(response.error.message).toContain('4~10명의 플레이어가 필요합니다');
       }
       expect(mockRepository.update).not.toHaveBeenCalled();
     });
 
-    it('플레이어 수가 너무 많으면 실패해야 함 (10명)', async () => {
+    it('플레이어 수가 너무 많으면 실패해야 함 (11명)', async () => {
       // Arrange
-      const game = createTestGame('ROOM06', 10);
+      const game = createTestGame('ROOM06', 11);
       mockRepository.findById.mockResolvedValue(game);
 
       const request: StartGameRequest = {
@@ -235,7 +235,7 @@ describe('StartGameUseCase', () => {
       expect(response.success).toBe(false);
       if (!response.success) {
         expect(response.error.code).toBe('BUSINESS_RULE_VIOLATION');
-        expect(response.error.message).toContain('4~9명의 플레이어가 필요합니다');
+        expect(response.error.message).toContain('4~10명의 플레이어가 필요합니다');
       }
       expect(mockRepository.update).not.toHaveBeenCalled();
     });
@@ -285,9 +285,9 @@ describe('StartGameUseCase', () => {
       }
     });
 
-    it('정확히 9명(최대)일 때 게임을 시작해야 함', async () => {
+    it('정확히 10명(최대)일 때 게임을 시작해야 함', async () => {
       // Arrange
-      const game = createTestGame('ROOM09', 9);
+      const game = createTestGame('ROOM09', 10);
       mockRepository.findById.mockResolvedValue(game);
 
       const request: StartGameRequest = {
@@ -301,7 +301,7 @@ describe('StartGameUseCase', () => {
       // Assert
       expect(response.success).toBe(true);
       if (response.success) {
-        expect(response.data.playerCount).toBe(9);
+        expect(response.data.playerCount).toBe(10);
       }
     });
   });

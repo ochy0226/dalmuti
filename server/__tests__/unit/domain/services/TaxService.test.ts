@@ -105,7 +105,7 @@ describe('TaxService', () => {
       expect(TaxService.getTaxPairs(4)).toEqual([{ lowIdx: 3, highIdx: 0, count: 2 }]);
     });
 
-    it.each([5, 6, 7, 8, 9])('%i명이면 1위↔꼴찌 2장, 2위↔차하위 1장을 교환한다', (n) => {
+    it.each([5, 6, 7, 8, 9, 10])('%i명이면 1위↔꼴찌 2장, 2위↔차하위 1장을 교환한다', (n) => {
       expect(TaxService.getTaxPairs(n)).toEqual([
         { lowIdx: n - 1, highIdx: 0, count: 2 },
         { lowIdx: n - 2, highIdx: 1, count: 1 },
@@ -182,7 +182,7 @@ describe('TaxService', () => {
       });
     });
 
-    describe.each([5, 6, 7, 8, 9])('%i명 플레이어', (n) => {
+    describe.each([5, 6, 7, 8, 9, 10])('%i명 플레이어', (n) => {
       it('1위↔꼴찌 2장, 2위↔차하위 1장 교환 기록이 만들어진다 (바침은 완료, 돌려줌은 대기)', () => {
         const players = makePlayers(n);
         const exchanges = TaxService.initializeTaxExchanges(players);

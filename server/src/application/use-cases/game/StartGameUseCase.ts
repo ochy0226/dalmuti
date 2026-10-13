@@ -40,7 +40,7 @@ export class StartGameUseCase
   implements IUseCase<StartGameRequest, UseCaseResponse<StartGameResponse>>
 {
   private readonly MIN_PLAYERS = 4;
-  private readonly MAX_PLAYERS = 9;
+  private readonly MAX_PLAYERS = 10;
 
   constructor(private readonly gameRepository: IGameRepository) {}
 

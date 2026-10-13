@@ -452,7 +452,7 @@ const Lobby: React.FC = () => {
         </Panel>
 
         <Rules>
-          <Chip>👥 4~9명</Chip>
+          <Chip>👥 4~10명</Chip>
           <Chip>⬇️ 낮은 숫자가 강해요</Chip>
           <Chip>🏁 카드를 먼저 다 내면 승리</Chip>
         </Rules>

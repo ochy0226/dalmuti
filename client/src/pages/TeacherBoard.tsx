@@ -242,9 +242,9 @@ const TeacherBoard: React.FC = () => {
   const canStart =
     inLobby &&
     players.length >= 4 &&
-    players.length <= 9 &&
+    players.length <= 10 &&
     players.every((p) => p.isReady);
-  const tableSize = Math.min(Math.max(players.length, 4), 9);
+  const tableSize = Math.min(Math.max(players.length, 4), 10);
   const lastRankName = rankName(tableSize, tableSize);
 
   return (
@@ -285,7 +285,7 @@ const TeacherBoard: React.FC = () => {
                 <div style={{ fontSize: "1.4rem", fontWeight: "bold" }}>
                   참가 {players.length}명{" "}
                   <span style={{ color: "#94a3b8", fontWeight: "normal" }}>
-                    (4~9명 필요)
+                    (4~10명 필요)
                   </span>
                 </div>
                 <Hint>

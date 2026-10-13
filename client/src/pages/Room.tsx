@@ -165,12 +165,12 @@ const Room: React.FC = () => {
   const canStartGame =
     isHost &&
     game.players.length >= 4 &&
-    game.players.length <= 9 &&
+    game.players.length <= 10 &&
     game.players.every((player) => player.isReady);
 
   const playerCount = game.players.length;
   const needMorePlayers = playerCount < 4;
-  const tooManyPlayers = playerCount > 9;
+  const tooManyPlayers = playerCount > 10;
 
   return (
     <Container>
@@ -182,10 +182,10 @@ const Room: React.FC = () => {
       <PlayerCountInfo>
         <InfoText>
           {needMorePlayers && `현재 ${playerCount}명 / 최소 4명 필요`}
-          {tooManyPlayers && `현재 ${playerCount}명 / 최대 9명까지 가능`}
+          {tooManyPlayers && `현재 ${playerCount}명 / 최대 10명까지 가능`}
           {!needMorePlayers &&
             !tooManyPlayers &&
-            `현재 ${playerCount}명 참가 중 (4~9명)`}
+            `현재 ${playerCount}명 참가 중 (4~10명)`}
         </InfoText>
         {canStartGame && (
           <InfoText style={{ color: "#28a745", fontWeight: "bold" }}>
