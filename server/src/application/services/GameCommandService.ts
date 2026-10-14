@@ -29,6 +29,7 @@ import { RekeyPlayerUseCase } from '../use-cases/game/RekeyPlayerUseCase';
 import { StartNextGameByTeacherUseCase } from '../use-cases/game/StartNextGameByTeacherUseCase';
 import { SelectTaxCardsUseCase } from '../use-cases/game/SelectTaxCardsUseCase';
 import { TeacherTurnControlUseCase } from '../use-cases/game/TeacherTurnControlUseCase';
+import { RoomLock } from './RoomLock';
 import {
   UseCaseResponse,
   createSuccessResponse,
@@ -62,7 +63,44 @@ export class GameCommandService {
     private readonly startNextGameByTeacherUseCase?: StartNextGameByTeacherUseCase,
     private readonly selectTaxCardsUseCase?: SelectTaxCardsUseCase,
     private readonly teacherTurnControlUseCase?: TeacherTurnControlUseCase
-  ) {}
+  ) {
+    // 같은 방에 대한 명령은 한 줄로 세워 하나씩 처리한다.
+    // (동시에 들어온 요청이 서로의 저장 결과를 덮어써서 선택이 사라지는 문제 방지 - RoomLock 설명 참고)
+    // 아래 메서드들은 모두 첫 번째 인자가 roomId 이다.
+    const serialized = [
+      'resumeTeacherRoom',
+      'rekeyPlayer',
+      'startNextGameByTeacher',
+      'selectTaxCards',
+      'closeRoomByTeacher',
+      'skipTurnByTeacher',
+      'setTurnTimeLimitByTeacher',
+      'toggleReadyAndCheckStart',
+      'playOrPass',
+      'joinGame',
+      'leaveGame',
+      'startGame',
+      'selectRole',
+      'selectDeck',
+      'selectRevolution',
+      'voteNextGame',
+      'transitionTaxToPlaying',
+      'transitionToCardSelection',
+      'kickPlayerByTeacher',
+      'autoPickByTeacher',
+    ] as const;
+
+    const self = this as unknown as Record<string, (...args: unknown[]) => Promise<unknown>>;
+    serialized.forEach((name) => {
+      const original = self[name];
+      if (typeof original !== 'function') return;
+      self[name] = (roomId: unknown, ...rest: unknown[]) =>
+        this.roomLock.run(String(roomId), () => original.call(this, roomId, ...rest));
+    });
+  }
+
+  /** 같은 방의 명령을 순서대로 처리하는 잠금 */
+  private readonly roomLock = new RoomLock();
 
   /** 선생님이 방을 닫습니다. (방장만, 게임 기록 삭제) */
   async closeRoomByTeacher(roomId: string, teacherId: string) {
