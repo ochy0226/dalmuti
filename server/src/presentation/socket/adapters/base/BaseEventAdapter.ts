@@ -21,6 +21,7 @@ import { GameQueryService } from '../../../../application/services/GameQueryServ
 import { UseCaseResponse } from '../../../../application/dto/common/BaseResponse';
 import { ISocketEventPort } from '../../ports/ISocketEventPort';
 import { SocketEvent } from '../../../../../socket/events';
+import { PhaseTransitionScheduler } from '../../services/PhaseTransitionScheduler';
 
 /**
  * Socket.IO 응답 타입
@@ -138,6 +139,30 @@ export abstract class BaseEventAdapter implements ISocketEventPort {
       }
     } catch (error) {
       console.error('Failed to emit game state:', error);
+    }
+  }
+
+  /**
+   * 순위 확인 후 카드 선택 단계로 전환한다. 덱은 서버가 자동 배분하므로,
+   * 전환 결과가 세금 단계면 45초 뒤 본 게임으로 넘어가는 타이머도 건다.
+   */
+  protected async startCardSelectionPhase(
+    roomId: string,
+    scheduler: PhaseTransitionScheduler
+  ): Promise<void> {
+    const transitionResult = await this.commandService.transitionToCardSelection(roomId);
+    if (!transitionResult.success || !transitionResult.data.transitioned) return;
+
+    await this.emitGameState(roomId);
+
+    const state = await this.queryService.getGameState(roomId);
+    if (state?.phase === 'tax') {
+      scheduler.scheduleTaxToPlaying(roomId, async () => {
+        const taxResult = await this.commandService.transitionTaxToPlaying(roomId);
+        if (taxResult.success && taxResult.data.transitioned) {
+          await this.emitGameState(roomId);
+        }
+      });
     }
   }
 

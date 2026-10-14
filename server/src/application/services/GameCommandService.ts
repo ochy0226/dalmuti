@@ -625,8 +625,34 @@ export class GameCommandService {
    * @returns 전환 결과
    */
   async transitionToCardSelection(roomId: string) {
-    return this.transitionToCardSelectionUseCase.execute({
+    const result = await this.transitionToCardSelectionUseCase.execute({
       roomId,
     });
+    if (result.success && result.data.transitioned) {
+      // 덱 번호는 의미가 없는 랜덤이므로, 학생이 고르지 않고 서버가 순서대로 배분한다
+      await this.assignDecksAutomatically(roomId);
+    }
+    return result;
+  }
+
+  /** 카드 덱 선택 단계에서 남은 덱을 순서대로 자동 배분한다. (이미 방 락 안에서 호출됨) */
+  private async assignDecksAutomatically(roomId: string) {
+    const MAX_STEPS = 20;
+    for (let step = 0; step < MAX_STEPS; step += 1) {
+      // eslint-disable-next-line no-await-in-loop
+      const snapshot = await this.teacherTurnControlUseCase?.getGameSnapshot(roomId);
+      if (!snapshot || !snapshot.success) return;
+      const game = snapshot.data;
+      if (game.phase !== 'cardSelection' || !game.currentTurn) return;
+      const deckIndex = (game.selectableDecks ?? []).findIndex((d) => !d.isSelected);
+      if (deckIndex < 0) return;
+      // eslint-disable-next-line no-await-in-loop
+      const res = await this.selectDeckUseCase.execute({
+        roomId,
+        playerId: game.currentTurn,
+        deckIndex,
+      });
+      if (!res.success) return;
+    }
   }
 }

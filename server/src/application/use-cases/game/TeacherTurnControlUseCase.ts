@@ -60,6 +60,23 @@ export class TeacherTurnControlUseCase {
   /**
    * 방장이 맞으면 현재 게임 상태(플레인 객체)를 돌려줍니다. (선생님 자동 선택 기능에서 사용)
    */
+  async getGameSnapshot(
+    roomIdValue: string
+  ): Promise<UseCaseResponse<ReturnType<Game['toPlainObject']>>> {
+    try {
+      const game = await this.gameRepository.findById(RoomId.from(roomIdValue));
+      if (!game) {
+        return createErrorResponse('GAME_NOT_FOUND', '방을 찾을 수 없습니다.');
+      }
+      return createSuccessResponse(game.toPlainObject());
+    } catch (error) {
+      return createErrorResponse(
+        'GET_GAME_FAILED',
+        error instanceof Error ? error.message : 'Unknown error occurred'
+      );
+    }
+  }
+
   async getOwnedGame(
     roomIdValue: string,
     teacherId: string

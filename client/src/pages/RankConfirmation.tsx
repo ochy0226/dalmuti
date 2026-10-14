@@ -102,8 +102,15 @@ const RankConfirmation: React.FC = () => {
   const [countdown, setCountdown] = React.useState(5);
 
   React.useEffect(() => {
+    // 덱은 서버가 자동 배분하므로 곧바로 다음 단계 화면으로 넘어간다
     if (game?.phase === "cardSelection") {
       navigate("/select-card-deck");
+    } else if (game?.phase === "revolution") {
+      navigate("/revolution");
+    } else if (game?.phase === "tax") {
+      navigate("/tax");
+    } else if (game?.phase === "playing") {
+      navigate("/play");
     }
   }, [game?.phase, navigate]);
 

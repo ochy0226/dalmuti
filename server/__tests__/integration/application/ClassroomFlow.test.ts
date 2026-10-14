@@ -183,16 +183,13 @@ describe('수업 상황 통합 테스트', () => {
       expect(ranks).toEqual([1, 2, 3, 4, 5, 6]);
     });
 
-    it('덱 고르기: 남은 학생의 덱을 순서대로 자동 배정해 세금/본 게임 단계까지 진행한다', async () => {
+    it('덱 고르기: 카드 선택 단계로 넘어가면 서버가 덱을 자동 배분해 혁명/세금/본 게임 단계까지 진행한다', async () => {
       const { roomId } = await setupRoom(5);
       await service.startGame(roomId, TEACHER);
       await service.autoPickByTeacher(roomId, TEACHER); // 계급 전부 자동
+
       await service.transitionToCardSelection(roomId); // 5초 타이머 대신 직접 전환
-      expect((await query.getGameState(roomId))?.phase).toBe('cardSelection');
 
-      const res = await service.autoPickByTeacher(roomId, TEACHER);
-
-      expect(res.success).toBe(true);
       const state = (await query.getGameState(roomId))!;
       // 덱을 모두 배정하면 혁명(조커 2장 보유자가 있을 때) 또는 세금 단계가 된다
       expect(['revolution', 'tax', 'playing']).toContain(state.phase);

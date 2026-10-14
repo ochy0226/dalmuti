@@ -103,10 +103,7 @@ export class GameEventAdapter extends BaseEventAdapter {
           this.phaseTransitionScheduler.scheduleRoleSelectionCompleteToCardSelection(
             roomId,
             async () => {
-              const transitionResult = await this.commandService.transitionToCardSelection(roomId);
-              if (transitionResult.success && transitionResult.data.transitioned) {
-                await this.emitGameState(roomId);
-              }
+              await this.startCardSelectionPhase(roomId, this.phaseTransitionScheduler);
             }
           );
         } else if (state?.phase === 'tax') {
@@ -199,11 +196,7 @@ export class GameEventAdapter extends BaseEventAdapter {
           this.phaseTransitionScheduler.scheduleRoleSelectionCompleteToCardSelection(
             roomId,
             async () => {
-              const transitionResult = await this.commandService.transitionToCardSelection(roomId);
-
-              if (transitionResult.success && transitionResult.data.transitioned) {
-                await this.emitGameState(roomId);
-              }
+              await this.startCardSelectionPhase(roomId, this.phaseTransitionScheduler);
             }
           );
         }
@@ -405,13 +398,7 @@ export class GameEventAdapter extends BaseEventAdapter {
           this.phaseTransitionScheduler.scheduleRoleSelectionCompleteToCardSelection(
             roomId,
             async () => {
-              // GameCommandService를 통해 phase 전환 (덱 셔플 및 분배 포함)
-              const transitionResult = await this.commandService.transitionToCardSelection(roomId);
-
-              if (transitionResult.success && transitionResult.data.transitioned) {
-                // 클라이언트에게 업데이트된 게임 상태 전송
-                await this.emitGameState(roomId);
-              }
+              await this.startCardSelectionPhase(roomId, this.phaseTransitionScheduler);
             }
           );
         }
