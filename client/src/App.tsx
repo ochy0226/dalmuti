@@ -66,6 +66,21 @@ const AppContent: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomNotice]);
 
+  // 게임 단계가 바뀌면 어느 화면에 있든 그 단계의 화면으로 이동한다
+  // (화면마다 이동 조건을 따로 두면 단계가 건너뛰어질 때 학생이 멈춰 버린다)
+  const gamePhase = useGameStore((s) => s.game?.phase);
+  const gameVoting = useGameStore((s) => s.game?.isVoting);
+  useEffect(() => {
+    const g = useGameStore.getState().game;
+    if (!g || !gamePhase) return;
+    if (location.pathname === "/" || location.pathname === "/teacher") return;
+    const target = pathForGame({ phase: gamePhase, isVoting: gameVoting });
+    if (target !== location.pathname) {
+      navigate(target, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gamePhase, gameVoting]);
+
   // 새로고침/재접속으로 이전 게임을 되찾았는데 로비 화면에 있다면 원래 단계로 이동
   useEffect(() => {
     if (restoredGame && location.pathname === "/") {
