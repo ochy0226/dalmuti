@@ -128,20 +128,12 @@ const InfoText = styled.p`
 `;
 
 const Room: React.FC = () => {
-  const { socketId, ready, startGame } = useSocketContext();
+  const { socketId, startGame } = useSocketContext();
   const { game } = useGameStore();
   const navigate = useNavigate();
   const [isHelpOpen, setIsHelpOpen] = React.useState(false);
 
   const isHost = game?.ownerId === socketId;
-
-  const handleReady = async () => {
-    if (!socketId || !game?.roomId) return;
-    const response = await ready(game.roomId, socketId);
-    if (!response.success) {
-      alert(response.error || "준비 중 오류가 발생했습니다.");
-    }
-  };
 
   const handleStartGame = async () => {
     if (!game?.roomId) return;
@@ -165,8 +157,7 @@ const Room: React.FC = () => {
   const canStartGame =
     isHost &&
     game.players.length >= 4 &&
-    game.players.length <= 10 &&
-    game.players.every((player) => player.isReady);
+    game.players.length <= 10;
 
   const playerCount = game.players.length;
   const needMorePlayers = playerCount < 4;
@@ -189,7 +180,7 @@ const Room: React.FC = () => {
         </InfoText>
         {canStartGame && (
           <InfoText style={{ color: "#28a745", fontWeight: "bold" }}>
-            ✓ 모든 플레이어가 준비 완료! 게임을 시작할 수 있습니다.
+            ✓ 게임을 시작할 수 있습니다.
           </InfoText>
         )}
       </PlayerCountInfo>
@@ -205,16 +196,14 @@ const Room: React.FC = () => {
               {player.nickname + (player.id === socketId ? " (나)" : "")}
               {player.id === game.ownerId && " 👑"}
             </PlayerName>
-            <PlayerStatus>
-              {player.isReady ? "준비 완료" : "준비 중"}
-            </PlayerStatus>
+            <PlayerStatus>입장 완료</PlayerStatus>
           </PlayerCard>
         ))}
       </PlayerList>
 
       <ButtonContainer>
-        {currentPlayer && !currentPlayer.isReady && (
-          <Button onClick={handleReady}>준비하기</Button>
+        {currentPlayer && !isHost && (
+          <InfoText>선생님이 게임을 시작할 때까지 기다려 주세요 ⏳</InfoText>
         )}
         {isHost && (
           <Button onClick={handleStartGame} disabled={!canStartGame}>

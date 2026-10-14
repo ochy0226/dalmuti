@@ -9,6 +9,7 @@
  */
 
 import { IGameRepository } from '../../ports/IGameRepository';
+import { Game } from '../../../domain/entities/Game';
 import { RoomId } from '../../../domain/value-objects/RoomId';
 import { PlayerId } from '../../../domain/value-objects/PlayerId';
 import { PassTurnUseCase } from './PassTurnUseCase';
@@ -51,6 +52,79 @@ export class TeacherTurnControlUseCase {
     } catch (error) {
       return createErrorResponse(
         'SKIP_TURN_FAILED',
+        error instanceof Error ? error.message : 'Unknown error occurred'
+      );
+    }
+  }
+
+  /**
+   * 방장이 맞으면 현재 게임 상태(플레인 객체)를 돌려줍니다. (선생님 자동 선택 기능에서 사용)
+   */
+  async getOwnedGame(
+    roomIdValue: string,
+    teacherId: string
+  ): Promise<UseCaseResponse<ReturnType<Game['toPlainObject']>>> {
+    try {
+      const roomId = RoomId.from(roomIdValue);
+      const game = await this.gameRepository.findById(roomId);
+      if (!game) {
+        return createErrorResponse('GAME_NOT_FOUND', '방을 찾을 수 없습니다.');
+      }
+      if (!game.ownerId.equals(PlayerId.create(teacherId))) {
+        return createErrorResponse('NOT_OWNER', '선생님(방장)만 사용할 수 있습니다.');
+      }
+      return createSuccessResponse(game.toPlainObject());
+    } catch (error) {
+      return createErrorResponse(
+        'GET_GAME_FAILED',
+        error instanceof Error ? error.message : 'Unknown error occurred'
+      );
+    }
+  }
+
+  /**
+   * 대기실에서 학생을 내보냅니다. (방장만, 게임 시작 전에만)
+   *
+   * 게임이 시작된 뒤에는 계급/덱/카드 진행에 영향을 줘서 게임이 꼬일 수 있으므로 허용하지 않습니다.
+   */
+  async kickPlayer(
+    roomIdValue: string,
+    teacherId: string,
+    targetId: string
+  ): Promise<UseCaseResponse<{ roomId: string; kickedId: string; nickname: string }>> {
+    try {
+      const roomId = RoomId.from(roomIdValue);
+      const game = await this.gameRepository.findById(roomId);
+      if (!game) {
+        return createErrorResponse('GAME_NOT_FOUND', '방을 찾을 수 없습니다.');
+      }
+      if (!game.ownerId.equals(PlayerId.create(teacherId))) {
+        return createErrorResponse('NOT_OWNER', '선생님(방장)만 학생을 내보낼 수 있습니다.');
+      }
+      if (game.phase !== 'waiting') {
+        return createErrorResponse(
+          'GAME_ALREADY_STARTED',
+          '게임이 시작된 뒤에는 내보낼 수 없어요. 방을 닫고 새로 만들어 주세요.'
+        );
+      }
+
+      const target = game.getPlayer(PlayerId.create(targetId));
+      if (!target) {
+        return createErrorResponse('PLAYER_NOT_FOUND', '이미 방에 없는 학생입니다.');
+      }
+
+      game.removePlayer(target.id);
+      // 마지막 학생을 내보내도 선생님의 방은 유지한다 (LeaveGameUseCase와 달리 방을 지우지 않음)
+      await this.gameRepository.update(roomId, game);
+
+      return createSuccessResponse({
+        roomId: roomId.value,
+        kickedId: targetId,
+        nickname: target.nickname,
+      });
+    } catch (error) {
+      return createErrorResponse(
+        'KICK_PLAYER_FAILED',
         error instanceof Error ? error.message : 'Unknown error occurred'
       );
     }

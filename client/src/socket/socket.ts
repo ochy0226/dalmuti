@@ -15,7 +15,7 @@ class SocketClient {
   private connectCallback: (() => void) | null = null;
   private restoredCallback: ((game: Game) => void) | null = null;
   private presenceCallback: ((disconnected: string[]) => void) | null = null;
-  private roomClosedCallback: (() => void) | null = null;
+  private roomClosedCallback: ((message: string) => void) | null = null;
 
   // ===== 재접속(세션) =====
   // 소켓 ID가 곧 플레이어 ID라서, 연결이 끊겼다 붙으면 ID가 바뀐다.
@@ -120,7 +120,7 @@ class SocketClient {
     }
   }
 
-  onRoomClosed(callback: () => void) {
+  onRoomClosed(callback: (message: string) => void) {
     this.roomClosedCallback = callback;
   }
 
@@ -237,7 +237,19 @@ class SocketClient {
     this.socket.on(SocketEvent.ROOM_CLOSED, () => {
       this.clearSession();
       if (this.roomClosedCallback) {
-        this.roomClosedCallback();
+        this.roomClosedCallback(
+          "선생님이 방을 닫았어요. 새로 만든 방의 QR을 다시 찍어 주세요!"
+        );
+      }
+    });
+
+    // 선생님이 나를 대기실에서 내보냈을 때
+    this.socket.on(SocketEvent.KICKED, () => {
+      this.clearSession();
+      if (this.roomClosedCallback) {
+        this.roomClosedCallback(
+          "선생님이 방에서 내보냈어요. 이유는 선생님께 물어봐 주세요."
+        );
       }
     });
 
@@ -343,6 +355,25 @@ class SocketClient {
   // 선생님(진행자) 방: 방장이지만 플레이어로 참가하지 않음
   teacherCreate(): Promise<{ roomId: string }> {
     return this.emitWithAck<{ roomId: string }>(SocketEvent.TEACHER_CREATE, {});
+  }
+
+  /** 선생님: 대기실에서 학생을 내보낸다 (게임 시작 전에만) */
+  teacherKick(
+    roomId: string,
+    playerId: string
+  ): Promise<{ roomId: string; kickedId: string; nickname: string }> {
+    return this.emitWithAck<{ roomId: string; kickedId: string; nickname: string }>(
+      SocketEvent.TEACHER_KICK,
+      { roomId, playerId }
+    );
+  }
+
+  /** 선생님: 안 고른 학생을 대신해 계급/덱/혁명 선택을 자동으로 진행 */
+  teacherAutoPick(roomId: string): Promise<{ roomId: string; picked: number }> {
+    return this.emitWithAck<{ roomId: string; picked: number }>(
+      SocketEvent.TEACHER_AUTO_PICK,
+      { roomId }
+    );
   }
 
   /** 선생님: 방을 닫는다 (학생들은 모두 메인 화면으로 돌아간다) */

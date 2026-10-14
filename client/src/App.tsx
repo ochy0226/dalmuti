@@ -45,7 +45,7 @@ const pathForGame = (game: { phase: string; isVoting?: boolean }): string => {
 };
 
 const AppContent: React.FC = () => {
-  const { connect, restoredGame, roomClosed, acknowledgeRoomClosed } =
+  const { connect, restoredGame, roomNotice, acknowledgeRoomClosed } =
     useSocketContext();
   const location = useLocation();
   const navigate = useNavigate();
@@ -54,17 +54,17 @@ const AppContent: React.FC = () => {
     connect();
   }, [connect]);
 
-  // 선생님이 방을 닫으면: 학생은 메인 화면으로 돌아가 새 QR로 다시 입장한다
+  // 선생님이 방을 닫거나 나를 내보내면: 학생은 안내를 보고 메인 화면으로 돌아간다
   useEffect(() => {
-    if (!roomClosed) return;
+    if (!roomNotice) return;
     if (location.pathname !== "/teacher") {
       useGameStore.getState().reset();
-      alert("선생님이 방을 닫았어요. 새로 만든 방의 QR을 다시 찍어 주세요!");
+      alert(roomNotice);
       navigate("/", { replace: true });
     }
     acknowledgeRoomClosed();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomClosed]);
+  }, [roomNotice]);
 
   // 새로고침/재접속으로 이전 게임을 되찾았는데 로비 화면에 있다면 원래 단계로 이동
   useEffect(() => {

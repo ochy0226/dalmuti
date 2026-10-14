@@ -90,10 +90,9 @@ export class JoinGameUseCase
         );
       }
 
-      // 5-1. 방장이면 자동으로 ready 상태로 설정
-      if (game.ownerId.equals(playerId)) {
-        player.ready();
-      }
+      // 5-1. 입장하면 자동으로 ready 상태로 설정
+      // (선생님이 시작 시점을 정하므로 학생이 따로 "준비" 버튼을 누를 필요가 없다)
+      player.ready();
 
       // 6. Repository를 통해 영속화
       await this.gameRepository.update(game.roomId, game);

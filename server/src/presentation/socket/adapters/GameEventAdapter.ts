@@ -49,6 +49,76 @@ export class GameEventAdapter extends BaseEventAdapter {
     this.handleTeacherSkipTurn(socket);
     this.handleTeacherTurnTimer(socket);
     this.handleTeacherCloseRoom(socket);
+    this.handleTeacherKick(socket);
+    this.handleTeacherAutoPick(socket);
+  }
+
+  /**
+   * TEACHER_KICK 이벤트 핸들러
+   *
+   * 선생님(방장)이 대기실에서 학생을 내보냅니다. (게임 시작 전에만)
+   * 내보내진 학생에게는 KICKED를 알려 메인 화면으로 돌려보냅니다.
+   */
+  private handleTeacherKick(socket: Socket): void {
+    socket.on(
+      SocketEvent.TEACHER_KICK,
+      async (
+        { roomId, playerId }: { roomId: string; playerId: string },
+        callback?: SocketCallback
+      ) => {
+        const result = await this.commandService.kickPlayerByTeacher(roomId, socket.id, playerId);
+
+        if (result.success) {
+          const target = socket.nsp.sockets.get(playerId);
+          if (target) {
+            target.emit(SocketEvent.KICKED, { roomId });
+            target.leave(roomId);
+          }
+          this.playerRooms.delete(playerId);
+        }
+
+        await this.handleSocketEvent(result, callback, result.success ? roomId : undefined);
+      }
+    );
+  }
+
+  /**
+   * TEACHER_AUTO_PICK 이벤트 핸들러
+   *
+   * 선생님(방장)이 "안 고른 학생"을 대신해 계급/덱/혁명 선택을 자동으로 진행합니다.
+   * 진행 후 단계가 바뀌었으면 일반 선택과 같은 자동 전환(타이머)을 예약합니다.
+   */
+  private handleTeacherAutoPick(socket: Socket): void {
+    socket.on(
+      SocketEvent.TEACHER_AUTO_PICK,
+      async ({ roomId }: { roomId: string }, callback?: SocketCallback) => {
+        const result = await this.commandService.autoPickByTeacher(roomId, socket.id);
+
+        await this.handleSocketEvent(result, callback, result.success ? roomId : undefined);
+
+        if (!result.success) return;
+
+        const state = await this.queryService.getGameState(roomId);
+        if (state?.phase === 'roleSelectionComplete') {
+          this.phaseTransitionScheduler.scheduleRoleSelectionCompleteToCardSelection(
+            roomId,
+            async () => {
+              const transitionResult = await this.commandService.transitionToCardSelection(roomId);
+              if (transitionResult.success && transitionResult.data.transitioned) {
+                await this.emitGameState(roomId);
+              }
+            }
+          );
+        } else if (state?.phase === 'tax') {
+          this.phaseTransitionScheduler.scheduleTaxToPlaying(roomId, async () => {
+            const transitionResult = await this.commandService.transitionTaxToPlaying(roomId);
+            if (transitionResult.success && transitionResult.data.transitioned) {
+              await this.emitGameState(roomId);
+            }
+          });
+        }
+      }
+    );
   }
 
   /**

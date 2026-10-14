@@ -109,16 +109,9 @@ describe('Full Game Flow E2E Tests', () => {
       expect(join3.success).toBe(true);
       expect(join4.success).toBe(true);
 
-      // 1-3. 모든 플레이어 준비
-      // 방장(player1)은 자동으로 ready 상태이므로 건너뜀
-      await service.toggleReadyAndCheckStart(roomId, 'player2');
-      await service.toggleReadyAndCheckStart(roomId, 'player3');
-      const ready4 = await service.toggleReadyAndCheckStart(roomId, 'player4');
-
-      expect(ready4.success).toBe(true);
-      if (ready4.success) {
-        expect(ready4.data.canStartGame).toBe(true);
-      }
+      // 1-3. 입장한 플레이어는 모두 자동으로 준비 상태 (준비 버튼 없음)
+      const lobby = await repository.findById(RoomId.from(roomId));
+      expect(lobby!.players.every((p) => p.isReady)).toBe(true);
 
       // 1-4. 게임 시작
       const startResult = await service.startGame(roomId, 'player1');
@@ -268,11 +261,7 @@ describe('Full Game Flow E2E Tests', () => {
       await service.joinGame(roomId, 'player3', 'Charlie');
       await service.joinGame(roomId, 'player4', 'David');
 
-      // 2. 모든 플레이어 준비 및 게임 시작
-      // 방장(player1)은 자동으로 ready 상태이므로 건너뜀
-      await service.toggleReadyAndCheckStart(roomId, 'player2');
-      await service.toggleReadyAndCheckStart(roomId, 'player3');
-      await service.toggleReadyAndCheckStart(roomId, 'player4');
+      // 2. 게임 시작 (입장하면 자동으로 준비 상태)
       await service.startGame(roomId, 'player1');
 
       // 3. 역할 선택 (player4를 꼴찌로 만들기 위해 13번 선택)

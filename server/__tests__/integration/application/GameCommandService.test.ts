@@ -172,20 +172,13 @@ describe('GameCommandService Integration Tests', () => {
       await joinUseCase.execute({ roomId, playerId: 'p3', nickname: 'Charlie' });
       await joinUseCase.execute({ roomId, playerId: 'p4', nickname: 'David' });
 
-      // Act - 모든 플레이어 준비
-      // 방장(p1)은 자동으로 ready 상태이므로 건너뜀
+      // Act - 입장하면 모두 자동으로 준비 상태이므로, 토글하면 준비가 풀린다
       const result2 = await service.toggleReadyAndCheckStart(roomId, 'p2');
-      const result3 = await service.toggleReadyAndCheckStart(roomId, 'p3');
-      const result4 = await service.toggleReadyAndCheckStart(roomId, 'p4');
 
       // Assert
       expect(result2.success).toBe(true);
-      expect(result3.success).toBe(true);
-      expect(result4.success).toBe(true);
-
-      if (result4.success) {
-        expect(result4.data.allPlayersReady).toBe(true);
-        expect(result4.data.canStartGame).toBe(true);
+      if (result2.success) {
+        expect(result2.data.allPlayersReady).toBe(false);
       }
     });
 
@@ -320,19 +313,7 @@ describe('GameCommandService Integration Tests', () => {
       expect(join3.success).toBe(true);
       expect(join4.success).toBe(true);
 
-      // 3. 모든 플레이어 준비
-      // 방장(p1)은 자동으로 ready 상태이므로 건너뜀
-      const ready2 = await service.toggleReadyAndCheckStart(roomId, 'p2');
-      const ready3 = await service.toggleReadyAndCheckStart(roomId, 'p3');
-      const ready4 = await service.toggleReadyAndCheckStart(roomId, 'p4');
-
-      expect(ready2.success).toBe(true);
-      expect(ready3.success).toBe(true);
-      expect(ready4.success).toBe(true);
-
-      if (ready4.success) {
-        expect(ready4.data.canStartGame).toBe(true);
-      }
+      // 3. 입장한 플레이어는 모두 자동으로 준비 상태
 
       // 4. DB에서 최종 상태 확인
       const game = await repository.findById(RoomId.from(roomId));

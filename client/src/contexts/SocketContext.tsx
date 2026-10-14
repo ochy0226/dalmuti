@@ -16,9 +16,16 @@ interface SocketContextType {
   restoredGame: any | null;
   /** 지금 연결이 끊긴 학생들의 ID (선생님 화면의 📵 표시용) */
   disconnectedIds: string[];
-  /** 선생님이 방을 닫았는지 (학생 화면을 메인으로 돌려보낼 때 사용). 확인하면 acknowledgeRoomClosed로 지운다 */
-  roomClosed: boolean;
+  /** 선생님이 방을 닫거나 나를 내보냈을 때의 안내 문구 (없으면 null). 확인하면 acknowledgeRoomClosed로 지운다 */
+  roomNotice: string | null;
   acknowledgeRoomClosed: () => void;
+  teacherKick: (
+    roomId: string,
+    playerId: string
+  ) => Promise<{ success: boolean; error?: string; data?: any }>;
+  teacherAutoPick: (
+    roomId: string
+  ) => Promise<{ success: boolean; error?: string; data?: any }>;
   teacherCloseRoom: (
     roomId: string
   ) => Promise<{ success: boolean; error?: string; data?: any }>;
@@ -99,7 +106,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
   const [socketId, setSocketId] = useState<string | null>(null);
   const [restoredGame, setRestoredGame] = useState<any | null>(null);
   const [disconnectedIds, setDisconnectedIds] = useState<string[]>([]);
-  const [roomClosed, setRoomClosed] = useState(false);
+  const [roomNotice, setRoomNotice] = useState<string | null>(null);
   const { game, setGame } = useGameStore();
 
   // ----- 자동 동기화 -----
@@ -167,7 +174,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
     socketClient.onError(handleError);
     socketClient.onRestored(handleRestored);
     socketClient.onPresence(setDisconnectedIds);
-    socketClient.onRoomClosed(() => setRoomClosed(true));
+    socketClient.onRoomClosed((message) => setRoomNotice(message));
 
     return () => {
       socketClient.offRoomClosed();
@@ -351,7 +358,25 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const acknowledgeRoomClosed = () => setRoomClosed(false);
+  const acknowledgeRoomClosed = () => setRoomNotice(null);
+
+  const teacherKick = async (roomId: string, playerId: string) => {
+    try {
+      const data = await socketClient.teacherKick(roomId, playerId);
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  };
+
+  const teacherAutoPick = async (roomId: string) => {
+    try {
+      const data = await socketClient.teacherAutoPick(roomId);
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  };
 
   const teacherSkipTurn = async (roomId: string) => {
     try {
@@ -396,8 +421,10 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
         socketId,
         restoredGame,
         disconnectedIds,
-        roomClosed,
+        roomNotice,
         acknowledgeRoomClosed,
+        teacherKick,
+        teacherAutoPick,
         teacherCloseRoom,
         resync,
         teacherSkipTurn,

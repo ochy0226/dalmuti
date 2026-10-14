@@ -102,6 +102,90 @@ export class GameCommandService {
   /** 같은 방의 명령을 순서대로 처리하는 잠금 */
   private readonly roomLock = new RoomLock();
 
+  /** 선생님이 대기실의 학생을 내보냅니다. (방장만, 게임 시작 전에만) */
+  async kickPlayerByTeacher(roomId: string, teacherId: string, targetId: string) {
+    if (!this.teacherTurnControlUseCase) {
+      return createErrorResponse('NOT_SUPPORTED', '지원하지 않는 기능입니다.');
+    }
+    return this.teacherTurnControlUseCase.kickPlayer(roomId, teacherId, targetId);
+  }
+
+  /**
+   * 선생님이 "안 고른 학생"을 대신해 자동으로 고릅니다. (방장만)
+   *
+   * 학생 폰이 멈추거나 연결 문제로 계급 카드/덱/혁명 선택이 안 돼서 게임이 멈췄을 때 쓰는 비상 기능.
+   * - 계급 뽑기: 아직 안 고른 학생에게 남은 카드를 무작위로 하나씩 배정
+   * - 덱 고르기: 지금 차례인 학생부터 남은 덱을 순서대로 배정
+   * - 혁명 선택: 지금 차례인 학생이 혁명하지 않는 걸로 처리
+   * - 세금: 못 고른 높은 계급은 가장 약한 카드가 자동으로 나가고 본 게임 시작
+   */
+  async autoPickByTeacher(roomId: string, teacherId: string) {
+    if (!this.teacherTurnControlUseCase) {
+      return createErrorResponse('NOT_SUPPORTED', '지원하지 않는 기능입니다.');
+    }
+    const snapshot = await this.teacherTurnControlUseCase.getOwnedGame(roomId, teacherId);
+    if (!snapshot.success) {
+      return snapshot;
+    }
+
+    let picked = 0;
+    const MAX_STEPS = 40;
+    for (let step = 0; step < MAX_STEPS; step += 1) {
+      // eslint-disable-next-line no-await-in-loop
+      const current = await this.teacherTurnControlUseCase.getOwnedGame(roomId, teacherId);
+      if (!current.success) break;
+      const game = current.data;
+
+      if (game.phase === 'roleSelection') {
+        const taken = new Set(
+          (game.roleSelectionDeck ?? []).filter((c) => c.selectedBy).map((c) => c.selectedBy)
+        );
+        const waiting = game.players.find((p) => !taken.has(p.id));
+        const free = (game.roleSelectionDeck ?? []).filter((c) => !c.isSelected);
+        if (!waiting || free.length === 0) break;
+        const choice = free[Math.floor(Math.random() * free.length)];
+        // eslint-disable-next-line no-await-in-loop
+        const res = await this.selectRoleUseCase.execute({
+          roomId,
+          playerId: waiting.id,
+          roleNumber: choice.number,
+        });
+        if (!res.success) break;
+        picked += 1;
+      } else if (game.phase === 'cardSelection') {
+        const deckIndex = (game.selectableDecks ?? []).findIndex((d) => !d.isSelected);
+        if (!game.currentTurn || deckIndex < 0) break;
+        // eslint-disable-next-line no-await-in-loop
+        const res = await this.selectDeckUseCase.execute({
+          roomId,
+          playerId: game.currentTurn,
+          deckIndex,
+        });
+        if (!res.success) break;
+        picked += 1;
+      } else if (game.phase === 'revolution') {
+        if (!game.currentTurn) break;
+        // eslint-disable-next-line no-await-in-loop
+        const res = await this.selectRevolutionUseCase.execute({
+          roomId,
+          playerId: game.currentTurn,
+          wantRevolution: false,
+        });
+        if (!res.success) break;
+        picked += 1;
+      } else if (game.phase === 'tax') {
+        // eslint-disable-next-line no-await-in-loop
+        const res = await this.transitionTaxToPlayingUseCase.execute({ roomId });
+        if (res.success && res.data.transitioned) picked += 1;
+        break;
+      } else {
+        break;
+      }
+    }
+
+    return createSuccessResponse({ roomId, picked });
+  }
+
   /** 선생님이 방을 닫습니다. (방장만, 게임 기록 삭제) */
   async closeRoomByTeacher(roomId: string, teacherId: string) {
     if (!this.teacherTurnControlUseCase) {

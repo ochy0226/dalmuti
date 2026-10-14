@@ -120,6 +120,43 @@ const LobbyPlayer = styled.div<{ $ready: boolean }>`
   border: 2px solid ${({ $ready }) => ($ready ? "#16a34a" : "#35245f")};
   font-size: 1.2rem;
   font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const KickButton = styled.button`
+  border: none;
+  background: #7f1d1d;
+  color: white;
+  border-radius: 6px;
+  width: 2rem;
+  height: 2rem;
+  font-size: 1rem;
+  cursor: pointer;
+  &:hover {
+    background: #b91c1c;
+  }
+`;
+
+const AutoPickButton = styled.button`
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  z-index: 50;
+  padding: 0.9rem 1.4rem;
+  border-radius: 12px;
+  border: none;
+  background: #f59e0b;
+  color: #1f1300;
+  font-size: 1.05rem;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  &:hover {
+    background: #d97706;
+  }
 `;
 
 const TeacherBoard: React.FC = () => {
@@ -132,6 +169,8 @@ const TeacherBoard: React.FC = () => {
     teacherSkipTurn,
     teacherSetTurnTimer,
     teacherCloseRoom,
+    teacherKick,
+    teacherAutoPick,
     disconnectedIds,
     startGame,
   } = useSocketContext();
@@ -251,6 +290,26 @@ const TeacherBoard: React.FC = () => {
     await handleCreate();
   };
 
+  const handleKick = async (playerId: string, nickname: string) => {
+    if (!roomId) return;
+    if (!window.confirm(`'${nickname}' 학생을 내보낼까요?`)) return;
+    const res = await teacherKick(roomId, playerId);
+    setError(res.success ? "" : res.error || "내보내지 못했습니다.");
+  };
+
+  // 아직 안 고른 학생 대신 계급/덱/혁명 선택을 자동으로 진행
+  const handleAutoPick = async () => {
+    if (!roomId) return;
+    if (
+      !window.confirm(
+        "아직 고르지 않은 학생 대신 자동으로 골라 줄까요?\n(이미 고른 학생은 그대로예요)"
+      )
+    )
+      return;
+    const res = await teacherAutoPick(roomId);
+    setError(res.success ? "" : res.error || "자동 선택에 실패했습니다.");
+  };
+
   const handleNextGame = async () => {
     if (!roomId) return;
     const res = await teacherNextGame(roomId);
@@ -286,8 +345,13 @@ const TeacherBoard: React.FC = () => {
   const canStart =
     inLobby &&
     players.length >= 4 &&
-    players.length <= 10 &&
-    players.every((p) => p.isReady);
+    players.length <= 10;
+  const canAutoPick = [
+    GamePhase.ROLE_SELECTION,
+    GamePhase.CARD_SELECTION,
+    GamePhase.REVOLUTION,
+    GamePhase.TAX,
+  ].includes(phase);
   const tableSize = Math.min(Math.max(players.length, 4), 10);
   const lastRankName = rankName(tableSize, tableSize);
 
@@ -334,7 +398,7 @@ const TeacherBoard: React.FC = () => {
                   </span>
                 </div>
                 <Hint>
-                  {players.filter((p) => p.isReady).length}명 준비 완료
+                  준비 버튼 없이 바로 시작할 수 있어요. 이름 옆 ✕로 내보낼 수 있어요.
                 </Hint>
               </div>
               <Button onClick={handleStart} disabled={!canStart}>
@@ -344,9 +408,14 @@ const TeacherBoard: React.FC = () => {
             {error && <Hint style={{ color: "#f87171" }}>{error}</Hint>}
             <Lobby>
               {players.map((p) => (
-                <LobbyPlayer key={p.id} $ready={p.isReady}>
-                  {p.isReady ? "✅ " : "⏳ "}
-                  {p.nickname}
+                <LobbyPlayer key={p.id} $ready>
+                  <span>✅ {p.nickname}</span>
+                  <KickButton
+                    title="내보내기"
+                    onClick={() => handleKick(p.id, p.nickname)}
+                  >
+                    ✕
+                  </KickButton>
                 </LobbyPlayer>
               ))}
             </Lobby>
@@ -408,6 +477,11 @@ const TeacherBoard: React.FC = () => {
         />
       )}
       {!inLobby && error && <Hint style={{ color: "#f87171" }}>{error}</Hint>}
+      {canAutoPick && (
+        <AutoPickButton onClick={handleAutoPick}>
+          ⏩ 안 고른 학생 자동으로 고르기
+        </AutoPickButton>
+      )}
     </Container>
   );
 };
