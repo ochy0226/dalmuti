@@ -404,7 +404,9 @@ const PlayPage: React.FC = () => {
   // ----- 낼 수 있는 조건 (서버 규칙과 같게: 바닥 첫 카드보다 낮은 숫자, 같은 장수) -----
   const last = game.lastPlay && game.lastPlay.cards.length > 0 ? game.lastPlay : null;
   const requiredCount = last ? last.cards.length : 0;
-  const lastRank = last ? last.cards[0].rank : null;
+  const lastRank = last
+    ? (last.cards.find((c) => !c.isJoker) ?? last.cards[0]).rank
+    : null;
   const allowed = (rank: number) => lastRank === null || rank < lastRank;
 
   const picked = pick.count + pick.jokers;

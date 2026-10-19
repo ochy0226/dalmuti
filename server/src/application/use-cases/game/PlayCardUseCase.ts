@@ -203,6 +203,11 @@ export class PlayCardUseCase
         roundFinished,
       });
     } catch (error) {
+      // 카드 제출이 거절된 이유를 서버 기록에 남긴다 (수업 중 문제 추적용)
+      console.warn(
+        `[PLAY_REJECTED] room=${request.roomId} player=${request.playerId} ` +
+          `cards=${JSON.stringify(request.cards)} reason=${error instanceof Error ? error.message : String(error)}`
+      );
       // Application Layer 에러는 그대로 전달
       if (
         error instanceof ValidationError ||

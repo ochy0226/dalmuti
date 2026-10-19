@@ -177,7 +177,8 @@ export function validateCardsStrongerThanLast(
     return success(undefined); // 이전 플레이가 없으면 항상 유효
   }
 
-  const lastCard = lastPlay.cards[0];
+  // 조커가 맨 앞에 있어도 비교 기준은 숫자 카드(없으면 조커)로 잡는다
+  const lastCard = lastPlay.cards.find((c) => !c.isJoker) ?? lastPlay.cards[0];
   const nonJokerCards = cards.filter((c) => !c.isJoker);
 
   // 모두 조커인 경우, 항상 유효

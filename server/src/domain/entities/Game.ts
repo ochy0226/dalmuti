@@ -326,8 +326,8 @@ export class Game {
       }
 
       // 카드가 lastPlay보다 강해야 함 (낮은 숫자가 더 강함)
-      const lastPlayRank = this._lastPlay.cards[0].rank;
-      const currentRank = cards[0].rank;
+      const lastPlayRank = (this._lastPlay.cards.find((c) => !c.isJoker) ?? this._lastPlay.cards[0]).rank;
+      const currentRank = (cards.find((c) => !c.isJoker) ?? cards[0]).rank;
 
       // 조커 처리: 조커는 와일드카드이므로 별도 처리 필요
       // 현재는 기본 검증만 수행
