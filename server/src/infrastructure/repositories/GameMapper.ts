@@ -83,6 +83,7 @@ export interface GameDocument {
     timestamp: Date;
   }>;
   turnTimeLimit?: number;
+  scores?: Record<string, { nickname: string; total: number; gameGain: number; notes: string[] }>;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -125,6 +126,7 @@ export class GameMapper {
       playerStats: plainGame.playerStats,
       roundPlays: plainGame.roundPlays,
       turnTimeLimit: plainGame.turnTimeLimit,
+      scores: plainGame.scores,
       updatedAt: new Date(),
     };
   }
@@ -160,6 +162,7 @@ export class GameMapper {
       playerStats: document.playerStats,
       roundPlays: document.roundPlays,
       turnTimeLimit: document.turnTimeLimit,
+      scores: document.scores,
     });
 
     return game;

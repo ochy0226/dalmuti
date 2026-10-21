@@ -4,6 +4,7 @@ import { Card, Game, GamePhase } from "../types";
 import { FeedEvent, FeedTone } from "../utils/broadcast";
 import { rankLabel } from "../utils/ranks";
 import { useTurnTimer } from "../hooks/useTurnTimer";
+import ScoreBoard from "./ScoreBoard";
 
 /**
  * 선생님용 실시간 중계 화면.
@@ -648,6 +649,11 @@ const LiveBoard: React.FC<Props> = ({
                 </FeedItem>
               ))}
             </FeedList>
+          </Panel>
+
+          <Panel>
+            <PanelTitle>🏆 점수 랭킹 (누적)</PanelTitle>
+            <ScoreBoard game={game} showNotes />
           </Panel>
 
           <Panel>

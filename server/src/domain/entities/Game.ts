@@ -21,6 +21,23 @@ export const DEFAULT_TURN_TIME_LIMIT = 40;
  * 달무티 게임 전체를 나타내는 도메인 엔티티
  * 게임의 상태와 비즈니스 로직을 캡슐화
  */
+/**
+ * 점수판 한 줄. 방(수업) 안에서 판이 계속될수록 누적된다.
+ * - total: 누적 점수
+ * - gameGain: 이번 판에서 얻은 점수 (새 판이 시작되면 0으로 초기화)
+ * - notes: 이번 판 점수 내역 (예: "2등 +4")
+ */
+export interface ScoreEntry {
+  nickname: string;
+  total: number;
+  gameGain: number;
+  notes: string[];
+}
+
+/** 혁명/대혁명 선언 보너스 점수 */
+export const REVOLUTION_BONUS = 3;
+export const GREAT_REVOLUTION_BONUS = 5;
+
 export class Game {
   readonly roomId: RoomId;
 
@@ -70,6 +87,8 @@ export class Game {
 
   private _turnTimeLimit: number; // 한 차례 제한 시간(초). 넘기면 자동 패스. 0이면 자동 패스 없음
 
+  private _scores: Map<string, ScoreEntry>; // playerId → 방 누적 점수
+
   /**
    * Private constructor - factory method를 통해서만 생성 가능
    */
@@ -99,7 +118,8 @@ export class Game {
     currentGameStartedAt?: Date,
     playerStats: Map<string, PlayerStats> = new Map(),
     roundPlays: RoundPlay[] = [],
-    turnTimeLimit: number = DEFAULT_TURN_TIME_LIMIT
+    turnTimeLimit: number = DEFAULT_TURN_TIME_LIMIT,
+    scores: Map<string, ScoreEntry> = new Map()
   ) {
     this.roomId = roomId;
     this._ownerId = ownerId;
@@ -123,6 +143,7 @@ export class Game {
     this._playerStats = playerStats;
     this._roundPlays = roundPlays;
     this._turnTimeLimit = turnTimeLimit;
+    this._scores = scores;
   }
 
   /**
@@ -652,6 +673,7 @@ export class Game {
 
       if (isLowestRank) {
         // 대혁명: 모든 순위 뒤집기
+        this.addScore(player, GREAT_REVOLUTION_BONUS, '대혁명');
         this.reverseAllRanks();
         this._revolutionStatus = {
           isRevolution: true,
@@ -660,6 +682,7 @@ export class Game {
         };
       } else {
         // 일반 혁명: 순위 유지
+        this.addScore(player, REVOLUTION_BONUS, '혁명');
         this._revolutionStatus = {
           isRevolution: true,
           isGreatRevolution: false,
@@ -704,9 +727,50 @@ export class Game {
    * 이전 투표 기록을 비우고 isVoting을 켜서 클라이언트가 투표 화면으로 이동하게 합니다.
    */
   startVoting(): void {
+    // 이미 투표 중이면 점수를 두 번 주지 않는다
+    if (!this._isVoting) {
+      this.awardGameScores();
+    }
     this._isVoting = true;
     this._votes.clear();
     this._nextGameVotes.clear();
+  }
+
+  /** 점수판에 점수를 더한다. */
+  private addScore(player: Player, points: number, note: string): void {
+    const entry = this._scores.get(player.id.value) ?? {
+      nickname: player.nickname,
+      total: 0,
+      gameGain: 0,
+      notes: [],
+    };
+    entry.nickname = player.nickname;
+    entry.total += points;
+    entry.gameGain += points;
+    entry.notes = [...entry.notes, `${note} +${points}`];
+    this._scores.set(player.id.value, entry);
+  }
+
+  /**
+   * 판이 끝났을 때 순위에 따라 점수를 준다.
+   * - 등수 점수: 1등 N점, 2등 N-1점 ... 꼴찌 1점 (N = 참가 인원)
+   * - 역전 보너스: 시작 계급보다 높은 등수로 끝나면 올라간 계단 수만큼 +점
+   *   (낮은 계급에서 이기는 게 더 어려우므로 밸런스를 맞춘다)
+   * - 혁명/대혁명 보너스는 선언한 순간 따로 지급된다.
+   */
+  private awardGameScores(): void {
+    const total = this._players.length;
+    this._finishedPlayers.forEach((playerId, index) => {
+      const player = this._players.find((p) => p.id.equals(playerId));
+      if (!player) return;
+      const place = index + 1;
+      this.addScore(player, total - place + 1, `${place}등`);
+      const startRank = player.rank ?? place;
+      const climbed = startRank - place;
+      if (climbed > 0) {
+        this.addScore(player, climbed, `${climbed}계단 상승`);
+      }
+    });
   }
 
   /**
@@ -846,6 +910,12 @@ export class Game {
     // 라운드 플레이 기록 초기화
     this._roundPlays = [];
 
+    // 이번 판 점수 내역 초기화 (누적 점수는 유지)
+    this._scores.forEach((entry) => {
+      entry.gameGain = 0;
+      entry.notes = [];
+    });
+
     // 이전 판의 혁명/세금 기록 초기화
     // (안 지우면 다음 판에도 "혁명 발생, 세금 없음" 표시가 계속 남는다)
     this._revolutionStatus = undefined;
@@ -918,6 +988,7 @@ export class Game {
     playerStats: Record<string, PlayerStats>;
     roundPlays: RoundPlay[];
     turnTimeLimit: number;
+    scores: Record<string, ScoreEntry>;
   } {
     // Map을 Record로 변환
     const votesRecord: Record<string, boolean> = Object.fromEntries(this._votes);
@@ -958,6 +1029,7 @@ export class Game {
       playerStats: playerStatsRecord,
       roundPlays: this._roundPlays,
       turnTimeLimit: this._turnTimeLimit,
+      scores: Object.fromEntries(this._scores),
     };
   }
 
@@ -995,6 +1067,7 @@ export class Game {
     playerStats?: Record<string, PlayerStats>;
     roundPlays?: RoundPlay[];
     turnTimeLimit?: number;
+    scores?: Record<string, ScoreEntry>;
   }): Game {
     const players = obj.players ? obj.players.map((p) => Player.fromPlainObject(p)) : [];
 
@@ -1048,7 +1121,8 @@ export class Game {
       obj.currentGameStartedAt,
       playerStats,
       obj.roundPlays || [],
-      obj.turnTimeLimit ?? DEFAULT_TURN_TIME_LIMIT
+      obj.turnTimeLimit ?? DEFAULT_TURN_TIME_LIMIT,
+      new Map<string, ScoreEntry>(Object.entries(obj.scores ?? {}))
     );
   }
 }

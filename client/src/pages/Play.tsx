@@ -601,7 +601,10 @@ const PlayPage: React.FC = () => {
 
       {/* 사람들: 남은 카드 수 */}
       <Panel>
-        <PanelTitle>차례 순서 · 남은 카드</PanelTitle>
+        <PanelTitle>
+          차례 순서 · 남은 카드
+          {socketId && game.scores?.[socketId] ? ` · 내 점수 ${game.scores[socketId].total}점` : ""}
+        </PanelTitle>
         <Chips>
           {sortedPlayers.map((p) => {
             const done = game.finishedPlayers.includes(p.id);

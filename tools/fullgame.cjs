@@ -23,6 +23,7 @@ function groups(cards) { const m = {}; cards.filter((c) => !c.isJoker).forEach((
     if (sig !== lastSig) { lastSig = sig; lastChange = Date.now(); }
     let acted = false;
     if (g.isVoting || g.phase === "gameEnd") {
+      if (g.scores) log("점수", Object.values(g.scores).map((x) => `${x.nickname}:${x.total}(+${x.gameGain} ${x.notes.join("/")})`).join(" | "));
       for (const b of bots) { const v = await ack(b, "vote", { roomId: room, vote: true }); if (v && v.success === false) log("투표 실패", v.error); }
       acted = true; await sleep(1500);
       const g2 = (await ack(t, "getGameState", { roomId: room })).data;

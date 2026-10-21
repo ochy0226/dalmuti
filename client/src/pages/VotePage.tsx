@@ -5,6 +5,7 @@ import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import GameHistory from "../components/GameHistory";
 import GameHistoryDetail from "../components/GameHistoryDetail";
+import ScoreBoard from "../components/ScoreBoard";
 
 const Container = styled.div`
   display: flex;
@@ -106,6 +107,10 @@ const VotePage: React.FC = () => {
           아니오
         </Button>
       </div>
+      <VoteStatus style={{ textAlign: "left" }}>
+        <b>🏆 점수 랭킹</b>
+        <ScoreBoard game={game} meId={socketId} light limit={5} showNotes />
+      </VoteStatus>
       <VoteStatus>
         <b>투표 현황</b>
         {game.players.map((p) => (

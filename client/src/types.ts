@@ -127,6 +127,11 @@ export interface Game {
   taxExchanges?: TaxExchange[];
   /** 한 차례 제한 시간(초). 넘기면 자동 패스. 0이면 꺼짐 */
   turnTimeLimit?: number;
+  /** 방 누적 점수판 (playerId → 점수) */
+  scores?: Record<
+    string,
+    { nickname: string; total: number; gameGain: number; notes: string[] }
+  >;
 }
 
 export interface UIState {
