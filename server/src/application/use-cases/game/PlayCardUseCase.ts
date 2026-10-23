@@ -135,6 +135,13 @@ export class PlayCardUseCase
 
       player.playCards(cards);
 
+      // 8-1. 새 카드가 나왔으니 다른 사람들의 "패스"는 모두 취소한다.
+      //      (패스는 "마지막으로 카드가 나온 뒤"의 패스만 의미가 있다. 안 지우면 앞서 패스한 사람이
+      //       차례가 돌아와도 "이미 패스했다"며 못 내고, 라운드도 너무 일찍 끝난다)
+      game.players.forEach((other) => {
+        if (!other.id.equals(playerId)) other.resetPass();
+      });
+
       // 9. lastPlay 업데이트
       game.setLastPlay({
         playerId,
